@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tafelindeler - Sleepnamen</title>
+
+  <style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 0;
+      background: #f6f7fb;
+      color: #1b1b1b;
+    }
+
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid #e8e8e8;
+      padding: 16px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 { margin: 0; font-size: 20px; }
+    header p { margin: 6px 0 0; opacity: .8; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+      padding: 16px;
+      align-items: start;
+    }
+
+    .left-panel, .right-panel {
+      background: #fff;
+      border: 1px solid #e8e8e8;
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .left-panel h2, .right-panel h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .actions button {
+      border: 1px solid #dcdcdc;
+      background: #fff;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .actions button:hover {
+      background: #f3f3f3;
+    }
+
+    .draggables {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: calc(100vh - 160px);
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .name-card {
+      border: 1px dashed #cfcfcf;
+      border-radius: 10px;
+      padding: 10px;
+      background: #fafafa;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      user-select: none;
+      cursor: grab;
+    }
+
+    .name-card:active { cursor: grabbing; }
+
+    .name-card.geplaatst {
+      background: #eef8ee;
+      border: 1px solid #9bd09b;
+      cursor: default;
+    }
+
+    .name-card.dragging {
+      opacity: .55;
+    }
+
+    .drag-handle {
+      width: 26px;
+      text-align: center;
+      font-size: 16px;
+      opacity: .7;
+    }
+
+    .name-card input {
+      width: 100%;
+      border: 1px solid #e2e2e2;
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #fff;
+    }
+
+    .board-wrap {
+      position: relative;
+      border-radius: 12px;
+      border: 1px solid #e8e8e8;
+      background: #fcfcff;
+      padding: 12px;
+      overflow: auto;
+    }
+
+    .board {
+      position: relative;
+      width: 860px;
+      height: 520px;
+      margin: 0 auto;
+      background:
+        linear-gradient(#fafbff, #fafbff) padding-box,
+        repeating-linear-gradient(0deg, transparent, transparent 29px, rgba(0,0,0,0.03) 30px) border-box;
+      border-radius: 10px;
+    }
+
+    .table {
+      position: absolute;
+      background: #f4f6ff;
+      border: 2px solid #9aa7ff;
+      border-radius: 12px;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .table.verplaatsen {
+      opacity: .85;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+      z-index: 5;
+    }
+
+    .table .table-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .table .table-title:active { cursor: grabbing; }
+
+    .table h3 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: .2px;
+    }
+
+    .cap {
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #e9ecff;
+      border: 1px solid #d7dcff;
+      white-space: nowrap;
+    }
+
+    .table .table-persons {
+      min-height: 90px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-content: flex-start;
+    }
+
+    .person-chip {
+      background: #ffffff;
+      border: 1px solid #e2e2e2;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .person-chip button {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: #777;
+      font-weight: 700;
+    }
+
+    .person-chip button:hover { color: #111; }
+
+    .table .empty {
+      color: #8a8a8a;
+      font-size: 12px;
+      margin-top: 6px;
+      width: 100%;
+    }
+
+    .table.drop-target {
+      outline: 3px solid rgba(64, 128, 255, .35);
+      background: #eaf0ff;
+    }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .board { width: 100%; height: 520px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Tafelindeler (sleep &amp; namen)</h1>
+    <p>Vul namen in (30 kaartjes), sleep ze naar tafels en sleep de tafels zelf waar je wilt.</p>
+  </header>
+
+  <div class="layout">
+
+    <section class="left-panel">
+      <h2>Namen (30 sleepbare kaarten)</h2>
+
+      <div class="draggables" id="draggables"></div>
+
+      <div class="actions">
+        <button onclick="willekeurigIndelen()">Willekeurig indelen</button>
+        <button onclick="allesLeegmaken()">Alles leegmaken</button>
+      </div>
+    </section>
+
+    <section class="right-panel">
+      <h2>🪑 Tafels</h2>
+
+      <div class="board-wrap">
+        <div class="board" id="board"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    const AANTAL_KAARTJES = 30;
+
+    const tafels = [
+      { id: 1, naam: "TAFEL 1", plaatsen: 6, x: 0, y: 40,  w: 250, h: 120, namen: ["Max", ""] },
+      { id: 2, naam: "TAFEL 2", plaatsen: 6, x: 250, y: 40,  w: 250, h: 120, namen: ["Abdul-karim", "Abdullah", "Majed", "Ali"] },
+      { id: 3, naam: "TAFEL 3", plaatsen: 6, x: 500,y: 40,  w: 250, h: 120, namen: ["Farres", "Ismael"] },
+      { id: 4, naam: "TAFEL 4", plaatsen: 6, x: 0,  y: 160, w: 250, h: 120, namen: ["Hasmatualah", "Django", "Michiel", "Julian"] },
+      { id: 5, naam: "TAFEL 5", plaatsen: 6, x: 250, y: 160, w: 250, h: 120, namen: ["Daniiar", "Peter", "William", "thijn", "Matthijs", "Douwe"] },
+      { id: 6, naam: "TAFEL 6", plaatsen: 6, x: 500, y: 160, w: 250, h: 120, namen: ["Jaimy", "Jayson"] }
+    ];
+
+    const BORD_BREEDTE = 860;
+    const BORD_HOOGTE = 520;
+
+    const kaartNamen = new Array(AANTAL_KAARTJES).fill("");
+    const tafelInhoud = new Map();
+    const persoonLocatie = new Map();
+
+    tafels.forEach(tafel => tafelInhoud.set(tafel.id, []));
+
+    const kaartenEl = document.getElementById("draggables");
+    const bordEl = document.getElementById("board");
+
+
+    function maakNaamKaarten() {
+      for (let i = 0; i < AANTAL_KAARTJES; i++) {
+        const kaart = document.createElement("div");
+        kaart.className = "name-card";
+        kaart.draggable = true;
+
+        kaart.addEventListener("dragstart", (e) => {
+          kaart.classList.add("dragging");
+          e.dataTransfer.setData("text/plain", String(i));
+          e.dataTransfer.effectAllowed = "move";
+        });
+
+        kaart.addEventListener("dragend", () => {
+          kaart.classList.remove("dragging");
+        });
+
+        const handvat = document.createElement("div");
+        handvat.className = "drag-handle";
+        handvat.textContent = "☰";
+
+        const invoer = document.createElement("input");
+        invoer.type = "text";
+        invoer.placeholder = "Naam " + (i + 1);
+        invoer.value = kaartNamen[i];
+
+        let vorigeNaam = kaartNamen[i];
+
+        invoer.addEventListener("input", () => {
+          const nieuweNaam = invoer.value.trim();
+
+          if (vorigeNaam && persoonLocatie.has(vorigeNaam)) {
+            verwijderUitTafel(vorigeNaam);
+          }
+
+          kaartNamen[i] = nieuweNaam;
+          vorigeNaam = nieuweNaam;
+          tekenTafels();
+        });
+
+        kaart.appendChild(handvat);
+        kaart.appendChild(invoer);
+        kaartenEl.appendChild(kaart);
+      }
+    }
+
+
+    function tekenTafels() {
+      bordEl.innerHTML = "";
+
+      tafels.forEach(tafel => {
+        const tafelEl = document.createElement("div");
+        tafelEl.className = "table";
+        tafelEl.style.left = tafel.x + "px";
+        tafelEl.style.top = tafel.y + "px";
+        tafelEl.style.width = tafel.w + "px";
+        tafelEl.style.height = tafel.h + "px";
+
+        const mensen = tafelInhoud.get(tafel.id);
+
+        const titelEl = document.createElement("div");
+        titelEl.className = "table-title";
+        titelEl.innerHTML =
+          "<h3>🪑 " + tafel.naam + "</h3>" +
+          "<span class='cap'>" + mensen.length + "/" + tafel.plaatsen + "</span>";
+
+        const personenEl = document.createElement("div");
+        personenEl.className = "table-persons";
+
+        if (mensen.length === 0) {
+          personenEl.innerHTML = "<div class='empty'>Nog niemand</div>";
+        }
+
+        mensen.forEach(naam => {
+          const chip = document.createElement("div");
+          chip.className = "person-chip";
+
+          const tekst = document.createElement("span");
+          tekst.textContent = naam;
+
+          const knop = document.createElement("button");
+          knop.title = "Verwijder";
+          knop.textContent = "×";
+          knop.addEventListener("click", () => {
+            verwijderUitTafel(naam);
+            tekenTafels();
+          });
+
+          chip.appendChild(tekst);
+          chip.appendChild(knop);
+          personenEl.appendChild(chip);
+        });
+
+        maakTafelSleepbaar(tafel, tafelEl, titelEl);
+
+        tafelEl.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          tafelEl.classList.add("drop-target");
+        });
+
+        tafelEl.addEventListener("dragleave", () => {
+          tafelEl.classList.remove("drop-target");
+        });
+
+        tafelEl.addEventListener("drop", (e) => {
+          e.preventDefault();
+          tafelEl.classList.remove("drop-target");
+
+          const kaartNummer = parseInt(e.dataTransfer.getData("text/plain"), 10);
+          const naam = kaartNamen[kaartNummer];
+
+          if (!naam) {
+            alert("Vul eerst een naam in een kaartje.");
+            return;
+          }
+
+          zetNaamOpTafel(naam, tafel.id);
+        });
+
+        tafelEl.appendChild(titelEl);
+        tafelEl.appendChild(personenEl);
+        bordEl.appendChild(tafelEl);
+      });
+
+      kleurGeplaatsteKaartjes();
+    }
+
+
+    function kleurGeplaatsteKaartjes() {
+      for (let i = 0; i < AANTAL_KAARTJES; i++) {
+        const kaart = kaartenEl.children[i];
+        const naam = kaartNamen[i];
+        const opTafel = naam !== "" && persoonLocatie.has(naam);
+
+        kaart.classList.toggle("geplaatst", opTafel);
+        kaart.draggable = !opTafel;
+      }
+    }
+
+
+    function maakTafelSleepbaar(tafel, tafelEl, titelEl) {
+      titelEl.addEventListener("pointerdown", (e) => {
+        titelEl.setPointerCapture(e.pointerId);
+        tafelEl.classList.add("verplaatsen");
+
+        const startMuisX = e.clientX;
+        const startMuisY = e.clientY;
+        const startTafelX = tafel.x;
+        const startTafelY = tafel.y;
+
+        function beweeg(e) {
+          const nieuweX = startTafelX + (e.clientX - startMuisX);
+          const nieuweY = startTafelY + (e.clientY - startMuisY);
+
+          tafel.x = Math.max(0, Math.min(nieuweX, BORD_BREEDTE - tafel.w));
+          tafel.y = Math.max(0, Math.min(nieuweY, BORD_HOOGTE - tafel.h));
+
+          tafelEl.style.left = tafel.x + "px";
+          tafelEl.style.top = tafel.y + "px";
+        }
+
+        function stop() {
+          tafelEl.classList.remove("verplaatsen");
+          titelEl.removeEventListener("pointermove", beweeg);
+          titelEl.removeEventListener("pointerup", stop);
+          titelEl.removeEventListener("pointercancel", stop);
+        }
+
+        titelEl.addEventListener("pointermove", beweeg);
+        titelEl.addEventListener("pointerup", stop);
+        titelEl.addEventListener("pointercancel", stop);
+      });
+    }
+
+
+    function verwijderUitTafel(naam) {
+      const locatie = persoonLocatie.get(naam);
+
+      if (locatie) {
+        const mensen = tafelInhoud.get(locatie.tafelId);
+        tafelInhoud.set(locatie.tafelId, mensen.filter(n => n !== naam));
+        persoonLocatie.delete(naam);
+      }
+    }
+
+
+    function zetNaamOpTafel(naam, tafelId) {
+      const tafel = tafels.find(t => t.id === tafelId);
+      const mensen = tafelInhoud.get(tafelId);
+
+      if (mensen.includes(naam)) return;
+
+      if (mensen.length >= tafel.plaatsen) {
+        alert("Deze tafel is vol.");
+        return;
+      }
+
+      verwijderUitTafel(naam);
+
+      mensen.push(naam);
+      persoonLocatie.set(naam, { tafelId: tafelId });
+
+      tekenTafels();
+    }
+
+
+    function willekeurigIndelen() {
+      tafels.forEach(t => tafelInhoud.set(t.id, []));
+      persoonLocatie.clear();
+
+      const namen = kaartNamen.filter(naam => naam !== "");
+
+      namen.forEach(naam => {
+        const vrijeTafels = tafels.filter(t => tafelInhoud.get(t.id).length < t.plaatsen);
+
+        if (vrijeTafels.length > 0) {
+          const tafel = vrijeTafels[Math.floor(Math.random() * vrijeTafels.length)];
+          tafelInhoud.get(tafel.id).push(naam);
+          persoonLocatie.set(naam, { tafelId: tafel.id });
+        }
+      });
+
+      tekenTafels();
+    }
+
+
+    function zetBeginNamen() {
+      let kaartNummer = 0;
+
+      tafels.forEach(tafel => {
+        tafel.namen.forEach(naam => {
+          kaartNamen[kaartNummer] = naam;
+          kaartNummer++;
+
+          tafelInhoud.get(tafel.id).push(naam);
+          persoonLocatie.set(naam, { tafelId: tafel.id });
+        });
+      });
+    }
+
+
+    function allesLeegmaken() {
+      tafels.forEach(t => tafelInhoud.set(t.id, []));
+      persoonLocatie.clear();
+      tekenTafels();
+    }
+
+
+    zetBeginNamen();
+    maakNaamKaarten();
+    tekenTafels();
+  </script>
+</body>
+</html>

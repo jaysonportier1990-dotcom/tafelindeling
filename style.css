@@ -1,0 +1,60 @@
+.board-wrap{
+  border-radius: 12px;
+  border: 1px solid #e8e8e8;
+  background: #fcfcff;
+  padding: 12px;
+  overflow:auto;
+}
+
+.board-row{
+  display:flex;
+  flex-wrap:wrap;           /* gaat naar volgende rij op smalle schermen */
+  gap: 14px;
+  justify-content:flex-start;
+  align-items:flex-start;
+}
+
+.table{
+  background:#f4f6ff;
+  border: 2px solid #9aa7ff;
+  border-radius: 12px;
+  padding: 10px;
+  box-sizing:border-box;
+
+  /* “recht en gelijk” gevoel */
+  width: 240px;            /* vaste rechthoekige blokken */
+  min-height: 120px;      /* zodat ze niet alle kanten op “springen” */
+}
+
+.table .table-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.table-persons{
+  min-height: 90px;
+  display:flex;
+  flex-wrap:wrap;
+  gap: 6px;
+  align-content:flex-start;
+}
+
+.table.drop-target{
+  outline: 3px solid rgba(64, 126, 255, .35);
+  background:#eaf0ff;
+}
+
+/* optioneel: chips netter */
+.person-chip{
+  background:#ffffff;
+  border: 1px solid #e2e2e2;
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 12px;
+  display:flex;
+  align-items:center;
+  gap: 6px;
+}
